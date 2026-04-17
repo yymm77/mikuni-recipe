@@ -197,7 +197,7 @@ footer a{color:var(--gold);text-decoration:none}
   <button class="header-btn" onclick="openAdmin()">管理者ページ</button>
 </header>
 <div class="hero">
-  <div class="hero-sub">RECIPE ARCHIVE — 1,735 Recipes</div>
+  <div class="hero-sub">RECIPE ARCHIVE — 1,714 Recipes</div>
   <h1>三國清三<em>レシピ</em>アーカイブ</h1>
   <p>YouTube動画付き・分量自動計算・全文検索</p>
   <div class="genre-cards">
@@ -236,7 +236,11 @@ footer a{color:var(--gold);text-decoration:none}
 <div class="controls">
   <div class="genre-badge mikuni" id="genreBadge">三國清三レシピ</div>
   <input type="text" class="search-input" id="searchInput" placeholder="レシピ名・材料で検索...">
-  <select class="sort-select" id="sortSelect"><option value="no">番号順</option><option value="name">名前順</option></select>
+  <select class="sort-select" id="sortSelect">
+    <option value="no_desc">新しい順</option>
+    <option value="no_asc">古い順</option>
+    <option value="name">名前順</option>
+  </select>
   <span class="count-label" id="countLabel"></span>
 </div>
 <main><div class="grid" id="grid"></div></main>
@@ -368,6 +372,9 @@ footer a{color:var(--gold);text-decoration:none}
 <footer>
   <p>動画提供：<a href="https://www.youtube.com/@HotelDeMikuni" target="_blank">オテル・ドゥ・ミクニ YouTube</a></p>
   <p style="margin-top:5px">本サイトは三國シェフのYouTube公開レシピを整理・紹介するアーカイブです。</p>
+  <p style="margin-top:10px;font-family:'Cormorant Garamond',serif;font-size:.8rem;color:#666;letter-spacing:.1em">
+    累計訪問者数：<span id="visitorCount" style="color:var(--gold);font-size:1rem">—</span> 人
+  </p>
 </footer>
 <script>
 const GAS_URL='https://script.google.com/macros/s/AKfycbxBy6Qxpx4JZmS9b1o0MvXgbhMizt9dZWcuxbTGfLtM-LDrAPlJlSblmVK8rY4GIEazKw/exec';
@@ -439,7 +446,7 @@ function switchTab(el){
   badge.textContent=meta.label;
   badge.className='genre-badge '+meta.badgeClass;
   document.getElementById('searchInput').value='';
-  document.getElementById('sortSelect').value=currentTab==='mikuni'?'no':'name';
+  document.getElementById('sortSelect').value='no_desc';
   applyFilter();
 }
 
@@ -558,7 +565,8 @@ function applyFilter(){
         ||(r.ingredients||'').toLowerCase().includes(q)
         ||(r.note||'').toLowerCase().includes(q))
     :currentData.slice();
-  if(sort==='no') list.sort((a,b)=>(a.no||9999)-(b.no||9999));
+  if(sort==='no_desc') list.sort((a,b)=>(b.no||0)-(a.no||0));
+  else if(sort==='no_asc') list.sort((a,b)=>(a.no||9999)-(b.no||9999));
   else list.sort((a,b)=>(a.name||a.title||'').localeCompare(b.name||b.title||'','ja'));
   renderGrid(list);
 }
@@ -635,6 +643,38 @@ function downloadNewRecipes(){
 }
 
 applyFilter();
+
+// 訪問カウンター
+(function(){
+  const iframe=document.createElement('iframe');
+  iframe.name='count-iframe';
+  iframe.style.display='none';
+  document.body.appendChild(iframe);
+  const form=document.createElement('form');
+  form.method='POST';
+  form.action=GAS_URL;
+  form.target='count-iframe';
+  form.style.display='none';
+  const inp=document.createElement('input');
+  inp.type='hidden';
+  inp.name='postData';
+  inp.value=JSON.stringify({type:'count'});
+  form.appendChild(inp);
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+  setTimeout(()=>{
+    fetch(GAS_URL)
+      .then(r=>r.json())
+      .then(d=>{
+        if(d.count!==undefined){
+          document.getElementById('visitorCount').textContent=
+            Number(d.count).toLocaleString();
+        }
+      })
+      .catch(()=>{});
+  },2000);
+})();
 </script>
 </body>
 </html>
